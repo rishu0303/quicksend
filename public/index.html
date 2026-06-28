@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QuickSend — Instant File Transfer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0f;
+      --surface: #13131a;
+      --surface2: #1c1c28;
+      --border: #2a2a3a;
+      --accent: #00f5a0;
+      --accent2: #00c9ff;
+      --danger: #ff4466;
+      --text: #e8e8f0;
+      --muted: #6b6b80;
+      --glow: rgba(0, 245, 160, 0.15);
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Syne', sans-serif;
+      overflow-x: hidden;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    /* ── Animated background grid ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,245,160,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,245,160,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      top: -30%;
+      right: -20%;
+      width: 60vw;
+      height: 60vw;
+      background: radial-gradient(circle, rgba(0,201,255,0.06) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 24px 48px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 1.3rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    .logo-icon {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+
+    .nav-tag {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--accent);
+      background: rgba(0,245,160,0.08);
+      border: 1px solid rgba(0,245,160,0.2);
+      padding: 4px 10px;
+      border-radius: 20px;
+      letter-spacing: 0.05em;
+    }
+
+    /* ── MAIN ── */
+    main {
+      position: relative;
+      z-index: 1;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 48px 24px;
+    }
+
+    .hero-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.72rem;
+      letter-spacing: 0.2em;
+      color: var(--accent);
+      text-transform: uppercase;
+      margin-bottom: 16px;
+      opacity: 0;
+      animation: fadeUp 0.6s 0.1s forwards;
+    }
+
+    h1 {
+      font-size: clamp(2.4rem, 5vw, 4rem);
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      line-height: 1.05;
+      text-align: center;
+      margin-bottom: 16px;
+      opacity: 0;
+      animation: fadeUp 0.6s 0.2s forwards;
+    }
+
+    h1 span {
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .subtitle {
+      font-size: 1rem;
+      color: var(--muted);
+      text-align: center;
+      max-width: 420px;
+      line-height: 1.7;
+      margin-bottom: 52px;
+      opacity: 0;
+      animation: fadeUp 0.6s 0.3s forwards;
+    }
+
+    /* ── CARD ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 40px;
+      width: 100%;
+      max-width: 520px;
+      opacity: 0;
+      animation: fadeUp 0.6s 0.4s forwards;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent), var(--accent2), transparent);
+      opacity: 0.5;
+    }
+
+    /* ── DROP ZONE ── */
+    #dropzone {
+      border: 2px dashed var(--border);
+      border-radius: 14px;
+      padding: 48px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      position: relative;
+      background: var(--surface2);
+    }
+
+    #dropzone:hover, #dropzone.drag-over {
+      border-color: var(--accent);
+      background: var(--glow);
+      box-shadow: 0 0 30px var(--glow);
+    }
+
+    #dropzone.drag-over {
+      transform: scale(1.01);
+    }
+
+    .drop-icon {
+      font-size: 2.5rem;
+      margin-bottom: 12px;
+      display: block;
+      filter: grayscale(0.3);
+    }
+
+    .drop-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .drop-sub {
+      font-size: 0.82rem;
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+    }
+
+    #file-input { display: none; }
+
+    /* ── FILE INFO ── */
+    #file-info {
+      display: none;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 16px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin-top: 16px;
+    }
+
+    .file-icon {
+      width: 40px; height: 40px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, rgba(0,245,160,0.15), rgba(0,201,255,0.15));
+      border: 1px solid rgba(0,245,160,0.2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; flex-shrink: 0;
+    }
+
+    .file-meta { flex: 1; overflow: hidden; }
+    .file-name {
+      font-size: 0.88rem;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .file-size {
+      font-size: 0.75rem;
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+      margin-top: 2px;
+    }
+
+    .remove-btn {
+      background: none; border: none; cursor: pointer;
+      color: var(--muted); font-size: 18px; padding: 4px;
+      transition: color 0.2s;
+    }
+    .remove-btn:hover { color: var(--danger); }
+
+    /* ── BUTTON ── */
+    #send-btn {
+      width: 100%;
+      margin-top: 20px;
+      padding: 16px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border: none;
+      border-radius: 12px;
+      color: #0a0a0f;
+      font-family: 'Syne', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: none;
+    }
+
+    #send-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 30px rgba(0,245,160,0.3);
+    }
+    #send-btn:active { transform: translateY(0); }
+    #send-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    /* ── TOKEN DISPLAY ── */
+    #token-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .token-header {
+      font-size: 0.82rem;
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .token-box {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 16px;
+    }
+
+    .token-code {
+      font-family: 'DM Mono', monospace;
+      font-size: 1.6rem;
+      font-weight: 500;
+      letter-spacing: 0.15em;
+      color: var(--accent);
+      flex: 1;
+    }
+
+    .copy-btn {
+      background: rgba(0,245,160,0.08);
+      border: 1px solid rgba(0,245,160,0.2);
+      border-radius: 8px;
+      color: var(--accent);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.75rem;
+      padding: 8px 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .copy-btn:hover { background: rgba(0,245,160,0.15); }
+    .copy-btn.copied { color: #fff; background: rgba(0,245,160,0.25); }
+
+    .link-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 16px;
+    }
+
+    .link-text {
+      flex: 1;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--muted);
+      word-break: break-all;
+      white-space: normal;
+      user-select: all;
+      cursor: text;
+    }
+
+    .link-text span { color: var(--accent2); }
+
+    /* ── STATUS ── */
+    #status-panel {
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .status-line {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.85rem;
+    }
+
+    .pulse-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: pulse 1.5s infinite;
+      flex-shrink: 0;
+    }
+
+    .pulse-dot.waiting { background: #ffa500; }
+    .pulse-dot.sending { background: var(--accent2); }
+    .pulse-dot.done { background: var(--accent); animation: none; }
+    .pulse-dot.error { background: var(--danger); animation: none; }
+
+    /* ── PROGRESS ── */
+    .progress-wrap {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+    }
+
+    .progress-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      font-size: 0.82rem;
+    }
+
+    .progress-label { font-weight: 600; }
+    .progress-pct {
+      font-family: 'DM Mono', monospace;
+      color: var(--accent);
+    }
+
+    .progress-bar-bg {
+      height: 6px;
+      background: var(--border);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      width: 0%;
+      transition: width 0.2s ease;
+    }
+
+    .expiry-bar {
+      margin-top: 8px;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.72rem;
+      color: var(--muted);
+      text-align: right;
+    }
+
+    /* ── SUCCESS ── */
+    .success-card {
+      text-align: center;
+      padding: 24px;
+    }
+
+    .success-icon {
+      font-size: 3rem;
+      margin-bottom: 12px;
+      animation: pop 0.4s ease;
+    }
+
+    .success-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 6px;
+    }
+
+    .success-sub { font-size: 0.85rem; color: var(--muted); }
+
+    .new-transfer-btn {
+      margin-top: 20px;
+      padding: 12px 28px;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-family: 'Syne', sans-serif;
+      font-weight: 600;
+      font-size: 0.88rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .new-transfer-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ── FEATURES ── */
+    .features {
+      display: flex;
+      gap: 24px;
+      margin-top: 40px;
+      opacity: 0;
+      animation: fadeUp 0.6s 0.5s forwards;
+    }
+
+    .feature {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      max-width: 160px;
+    }
+
+    .feature-icon {
+      font-size: 1.1rem;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .feature-text { font-size: 0.78rem; color: var(--muted); line-height: 1.5; }
+    .feature-text strong { color: var(--text); display: block; font-size: 0.83rem; margin-bottom: 2px; }
+
+    /* ── ANIMATIONS ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: 0.4; transform: scale(0.85); }
+    }
+    @keyframes pop {
+      0%   { transform: scale(0.5); opacity: 0; }
+      80%  { transform: scale(1.1); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      position: relative; z-index: 1;
+      text-align: center;
+      padding: 24px;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.72rem;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="logo">
+      <div class="logo-icon">⚡</div>
+      QuickSend
+    </div>
+    <span class="nav-tag">NO STORAGE · ZERO TRACE</span>
+  </nav>
+
+  <main>
+    <p class="hero-label">Relay-Based File Transfer</p>
+    <h1>Send files <span>instantly</span>,<br/>leave nothing behind.</h1>
+    <p class="subtitle">Files stream peer-to-peer through an encrypted relay. No server storage. Auto-deletes on receipt or expiry.</p>
+
+    <div class="card" id="main-card">
+      <!-- Step 1: Drop file -->
+      <div id="step-upload">
+        <div id="dropzone">
+          <span class="drop-icon">📂</span>
+          <div class="drop-title">Drop your file here</div>
+          <div class="drop-sub">or click to browse · any format · up to 500MB</div>
+        </div>
+        <input type="file" id="file-input" />
+
+        <div id="file-info">
+          <div class="file-icon" id="file-icon">📄</div>
+          <div class="file-meta">
+            <div class="file-name" id="file-name-display"></div>
+            <div class="file-size" id="file-size-display"></div>
+          </div>
+          <button class="remove-btn" id="remove-file">✕</button>
+        </div>
+
+        <button id="send-btn">Generate Transfer Link →</button>
+      </div>
+
+      <!-- Step 2: Token & waiting -->
+      <div id="step-token" style="display:none">
+        <div id="token-panel">
+          <div class="token-header">Share this code with the recipient</div>
+          <div class="token-box">
+            <span class="token-code" id="token-display">———</span>
+            <button class="copy-btn" id="copy-token">Copy Code</button>
+          </div>
+
+          <div class="token-header" style="margin-top:4px">Or share the direct link</div>
+          <div class="link-row">
+            <span class="link-text" id="link-display"></span>
+            <button class="copy-btn" id="copy-link">Copy Link</button>
+          </div>
+        </div>
+
+        <div id="status-panel">
+          <div class="status-line" id="status-line">
+            <div class="pulse-dot waiting" id="pulse-dot"></div>
+            <span id="status-text">Waiting for recipient to connect...</span>
+          </div>
+
+          <div class="progress-wrap" id="progress-wrap" style="display:none">
+            <div class="progress-top">
+              <span class="progress-label">Transferring</span>
+              <span class="progress-pct" id="progress-pct">0%</span>
+            </div>
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill" id="progress-fill"></div>
+            </div>
+          </div>
+
+          <div class="expiry-bar" id="expiry-bar"></div>
+        </div>
+      </div>
+
+      <!-- Step 3: Done -->
+      <div id="step-done" style="display:none">
+        <div class="success-card">
+          <div class="success-icon">✅</div>
+          <div class="success-title">Transfer Complete</div>
+          <div class="success-sub">The file was delivered successfully.<br/>The session has been permanently destroyed.</div>
+          <button class="new-transfer-btn" id="new-transfer-btn">Send Another File</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="features">
+      <div class="feature">
+        <span class="feature-icon">🔁</span>
+        <div class="feature-text"><strong>Relay Routing</strong>Streams directly through server, never touches disk</div>
+      </div>
+      <div class="feature">
+        <span class="feature-icon">⏱️</span>
+        <div class="feature-text"><strong>10-Min Expiry</strong>Links auto-expire and sessions are destroyed</div>
+      </div>
+      <div class="feature">
+        <span class="feature-icon">🔐</span>
+        <div class="feature-text"><strong>Single Use</strong>Deleted immediately upon successful receipt</div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    QuickSend · Files relay in real-time · No storage · No tracking
+  </footer>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    const CHUNK_SIZE = 256 * 1024; // 256KB chunks
+
+    let selectedFile = null;
+    let currentToken = null;
+    let expiryInterval = null;
+    let expiresAt = null;
+
+    // ── DOM refs ──────────────────────────────────────────────────
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('file-input');
+    const fileInfo = document.getElementById('file-info');
+    const fileNameDisplay = document.getElementById('file-name-display');
+    const fileSizeDisplay = document.getElementById('file-size-display');
+    const fileIcon = document.getElementById('file-icon');
+    const sendBtn = document.getElementById('send-btn');
+    const removeFile = document.getElementById('remove-file');
+
+    const stepUpload = document.getElementById('step-upload');
+    const stepToken = document.getElementById('step-token');
+    const stepDone = document.getElementById('step-done');
+
+    const tokenDisplay = document.getElementById('token-display');
+    const linkDisplay = document.getElementById('link-display');
+    const copyToken = document.getElementById('copy-token');
+    const copyLink = document.getElementById('copy-link');
+
+    const statusPanel = document.getElementById('status-panel');
+    const statusLine = document.getElementById('status-line');
+    const pulseDot = document.getElementById('pulse-dot');
+    const statusText = document.getElementById('status-text');
+    const progressWrap = document.getElementById('progress-wrap');
+    const progressFill = document.getElementById('progress-fill');
+    const progressPct = document.getElementById('progress-pct');
+    const expiryBar = document.getElementById('expiry-bar');
+
+    // ── File helpers ──────────────────────────────────────────────
+    function formatBytes(b) {
+      if (b < 1024) return b + ' B';
+      if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
+      return (b / 1048576).toFixed(1) + ' MB';
+    }
+
+    function fileEmoji(type) {
+      if (type.startsWith('image/')) return '🖼️';
+      if (type.startsWith('video/')) return '🎬';
+      if (type.startsWith('audio/')) return '🎵';
+      if (type.includes('pdf')) return '📑';
+      if (type.includes('zip') || type.includes('compress')) return '🗜️';
+      if (type.startsWith('text/')) return '📝';
+      return '📄';
+    }
+
+    function setFile(file) {
+      selectedFile = file;
+      fileNameDisplay.textContent = file.name;
+      fileSizeDisplay.textContent = formatBytes(file.size);
+      fileIcon.textContent = fileEmoji(file.type);
+      fileInfo.style.display = 'flex';
+      sendBtn.style.display = 'block';
+    }
+
+    // ── Drag & drop ───────────────────────────────────────────────
+    dropzone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', e => { if (e.target.files[0]) setFile(e.target.files[0]); });
+
+    dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag-over'); });
+    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag-over'));
+    dropzone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropzone.classList.remove('drag-over');
+      if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]);
+    });
+
+    removeFile.addEventListener('click', () => {
+      selectedFile = null;
+      fileInput.value = '';
+      fileInfo.style.display = 'none';
+      sendBtn.style.display = 'none';
+    });
+
+    // ── Copy helpers ──────────────────────────────────────────────
+    function copyText(btn, text) {
+      navigator.clipboard.writeText(text).then(() => {
+        const orig = btn.textContent;
+        btn.textContent = 'Copied!';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = orig; btn.classList.remove('copied'); }, 1800);
+      });
+    }
+
+    copyToken.addEventListener('click', () => copyText(copyToken, currentToken));
+    copyLink.addEventListener('click', () => copyText(copyLink, linkDisplay.dataset.url));
+
+    // ── Generate link ─────────────────────────────────────────────
+    sendBtn.addEventListener('click', () => {
+      if (!selectedFile) return;
+      sendBtn.disabled = true;
+      sendBtn.textContent = 'Generating...';
+
+      socket.emit('sender:register', {
+        fileName: selectedFile.name,
+        fileSize: selectedFile.size,
+        fileType: selectedFile.type,
+      });
+    });
+
+    // ── Socket events ─────────────────────────────────────────────
+    socket.on('sender:token', ({ token, expiresAt: exp, link, serverIP, port }) => {
+      currentToken = token;
+      expiresAt = exp;
+
+      tokenDisplay.textContent = token;
+      // Use the server's actual network IP so the link works on other devices
+      const base = `http://${serverIP}:${port}`;
+      const fullUrl = `${base}/receive?token=${token}`;
+      linkDisplay.innerHTML = `<span>http://${serverIP}:${port}</span>/receive?token=${token}`;
+      linkDisplay.dataset.url = fullUrl;
+
+      stepUpload.style.display = 'none';
+      stepToken.style.display = 'block';
+      statusPanel.style.display = 'flex';
+
+      startExpiryTimer();
+    });
+
+    socket.on('sender:receiver_ready', ({ token }) => {
+      pulseDot.className = 'pulse-dot sending';
+      statusText.textContent = 'Recipient connected — starting transfer...';
+      // Auto-start immediately, no button click needed
+      progressWrap.style.display = 'block';
+      streamFile(token || currentToken);
+    });
+
+    socket.on('sender:start_transfer', ({ token }) => {
+      if (token !== currentToken) return;
+      progressWrap.style.display = 'block';
+      pulseDot.className = 'pulse-dot sending';
+      statusText.textContent = 'Transferring...';
+      streamFile(token);
+    });
+
+    socket.on('sender:transfer_complete', () => {
+      clearInterval(expiryInterval);
+      stepToken.style.display = 'none';
+      stepDone.style.display = 'block';
+    });
+
+    socket.on('error', ({ message }) => {
+      pulseDot.className = 'pulse-dot error';
+      statusText.textContent = `Error: ${message}`;
+    });
+
+    // ── Stream file in chunks ─────────────────────────────────────
+    function streamFile(token) {
+      const file = selectedFile;
+      const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+      let chunkIndex = 0;
+
+      function sendNext() {
+        if (chunkIndex >= totalChunks) return;
+        const start = chunkIndex * CHUNK_SIZE;
+        const end = Math.min(start + CHUNK_SIZE, file.size);
+        const blob = file.slice(start, end);
+        const reader = new FileReader();
+
+        reader.onload = e => {
+          socket.emit('sender:chunk', {
+            token,
+            chunk: e.target.result,
+            chunkIndex,
+            totalChunks,
+          });
+          const pct = Math.round(((chunkIndex + 1) / totalChunks) * 100);
+          progressFill.style.width = pct + '%';
+          progressPct.textContent = pct + '%';
+          chunkIndex++;
+          // Small delay to avoid flooding
+          setTimeout(sendNext, 10);
+        };
+        reader.readAsArrayBuffer(blob);
+      }
+      sendNext();
+    }
+
+    // ── Expiry timer ──────────────────────────────────────────────
+    function startExpiryTimer() {
+      function tick() {
+        const remaining = Math.max(0, expiresAt - Date.now());
+        const mins = Math.floor(remaining / 60000);
+        const secs = Math.floor((remaining % 60000) / 1000);
+        expiryBar.textContent = `Link expires in ${mins}:${secs.toString().padStart(2,'0')}`;
+        if (remaining === 0) {
+          clearInterval(expiryInterval);
+          pulseDot.className = 'pulse-dot error';
+          statusText.textContent = 'Session expired.';
+        }
+      }
+      tick();
+      expiryInterval = setInterval(tick, 1000);
+    }
+
+    // ── New transfer ──────────────────────────────────────────────
+    document.getElementById('new-transfer-btn').addEventListener('click', () => {
+      selectedFile = null; currentToken = null; expiresAt = null;
+      fileInput.value = '';
+      fileInfo.style.display = 'none';
+      sendBtn.style.display = 'none';
+      sendBtn.disabled = false;
+      sendBtn.textContent = 'Generate Transfer Link →';
+      progressFill.style.width = '0%';
+      progressPct.textContent = '0%';
+      progressWrap.style.display = 'none';
+      stepDone.style.display = 'none';
+      stepToken.style.display = 'none';
+      stepUpload.style.display = 'block';
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QuickSend — Receive File</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0f;
+      --surface: #13131a;
+      --surface2: #1c1c28;
+      --border: #2a2a3a;
+      --accent: #00f5a0;
+      --accent2: #00c9ff;
+      --danger: #ff4466;
+      --text: #e8e8f0;
+      --muted: #6b6b80;
+      --glow: rgba(0, 245, 160, 0.15);
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Syne', sans-serif;
+      overflow-x: hidden;
+    }
+
+    body {
+      display: flex; flex-direction: column; min-height: 100vh;
+    }
+
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image:
+        linear-gradient(rgba(0,245,160,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,245,160,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none; z-index: 0;
+    }
+
+    body::after {
+      content: '';
+      position: fixed; bottom: -20%; left: -10%;
+      width: 60vw; height: 60vw;
+      background: radial-gradient(circle, rgba(0,245,160,0.05) 0%, transparent 70%);
+      pointer-events: none; z-index: 0;
+    }
+
+    nav {
+      position: relative; z-index: 10;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 24px 48px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 1.3rem; font-weight: 800; letter-spacing: -0.02em;
+    }
+
+    .logo-icon {
+      width: 32px; height: 32px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center; font-size: 14px;
+    }
+
+    .nav-tag {
+      font-family: 'DM Mono', monospace; font-size: 0.7rem;
+      color: var(--accent2);
+      background: rgba(0,201,255,0.08);
+      border: 1px solid rgba(0,201,255,0.2);
+      padding: 4px 10px; border-radius: 20px; letter-spacing: 0.05em;
+    }
+
+    main {
+      position: relative; z-index: 1; flex: 1;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 48px 24px;
+    }
+
+    /* ── Token Entry ── */
+    #step-enter {
+      display: flex; flex-direction: column; align-items: center; gap: 24px;
+      width: 100%; max-width: 460px;
+      animation: fadeUp 0.5s forwards;
+    }
+
+    .enter-label {
+      font-family: 'DM Mono', monospace; font-size: 0.72rem;
+      letter-spacing: 0.2em; color: var(--accent2); text-transform: uppercase;
+    }
+
+    .enter-title { font-size: 2rem; font-weight: 800; letter-spacing: -0.03em; text-align: center; }
+
+    .enter-card {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 32px;
+      position: relative; overflow: hidden;
+    }
+
+    .enter-card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent2), var(--accent), transparent);
+      opacity: 0.5;
+    }
+
+    .token-input-label {
+      font-size: 0.8rem; color: var(--muted);
+      font-family: 'DM Mono', monospace; letter-spacing: 0.05em;
+      text-transform: uppercase; margin-bottom: 10px; display: block;
+    }
+
+    #token-input {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: var(--accent);
+      font-family: 'DM Mono', monospace;
+      font-size: 1.5rem;
+      font-weight: 500;
+      letter-spacing: 0.2em;
+      padding: 16px 20px;
+      text-align: center;
+      text-transform: uppercase;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    #token-input:focus {
+      border-color: var(--accent2);
+      box-shadow: 0 0 20px rgba(0,201,255,0.15);
+    }
+
+    #join-btn {
+      width: 100%;
+      margin-top: 16px;
+      padding: 16px;
+      background: linear-gradient(135deg, var(--accent2), var(--accent));
+      border: none; border-radius: 12px;
+      color: #0a0a0f;
+      font-family: 'Syne', sans-serif;
+      font-size: 0.95rem; font-weight: 700; letter-spacing: 0.02em;
+      cursor: pointer; transition: all 0.2s;
+    }
+
+    #join-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 30px rgba(0,201,255,0.3); }
+    #join-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    #token-error {
+      font-size: 0.82rem; color: var(--danger);
+      font-family: 'DM Mono', monospace;
+      text-align: center; margin-top: 10px;
+      display: none;
+    }
+
+    /* ── Waiting ── */
+    #step-waiting {
+      display: none; flex-direction: column; align-items: center; gap: 20px;
+      width: 100%; max-width: 460px;
+      animation: fadeUp 0.5s forwards;
+    }
+
+    .wait-card {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 32px;
+      position: relative; overflow: hidden;
+    }
+
+    .wait-card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent2), var(--accent), transparent);
+      opacity: 0.5;
+    }
+
+    .file-preview {
+      display: flex; align-items: center; gap: 16px;
+      padding: 16px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      margin-bottom: 24px;
+    }
+
+    .file-preview-icon {
+      width: 48px; height: 48px;
+      background: linear-gradient(135deg, rgba(0,245,160,0.15), rgba(0,201,255,0.15));
+      border: 1px solid rgba(0,201,255,0.2);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; flex-shrink: 0;
+    }
+
+    .file-preview-meta { flex: 1; overflow: hidden; }
+    .file-preview-name {
+      font-size: 0.92rem; font-weight: 700;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .file-preview-size {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.75rem; color: var(--muted); margin-top: 3px;
+    }
+
+    .status-row {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 0.85rem; color: var(--muted); margin-bottom: 20px;
+    }
+
+    .pulse-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--accent2);
+      animation: pulse 1.5s infinite; flex-shrink: 0;
+    }
+    .pulse-dot.active { background: var(--accent); }
+    .pulse-dot.done { background: var(--accent); animation: none; }
+    .pulse-dot.error { background: var(--danger); animation: none; }
+
+    #receive-btn {
+      width: 100%; padding: 16px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border: none; border-radius: 12px;
+      color: #0a0a0f;
+      font-family: 'Syne', sans-serif;
+      font-size: 0.95rem; font-weight: 700; letter-spacing: 0.02em;
+      cursor: pointer; transition: all 0.2s;
+      display: none;
+    }
+
+    #receive-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 30px rgba(0,245,160,0.3); }
+
+    .progress-wrap {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      display: none;
+    }
+
+    .progress-top {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 10px; font-size: 0.82rem;
+    }
+
+    .progress-label { font-weight: 600; }
+    .progress-pct { font-family: 'DM Mono', monospace; color: var(--accent); }
+
+    .progress-bar-bg {
+      height: 6px; background: var(--border);
+      border-radius: 3px; overflow: hidden;
+    }
+
+    .progress-bar-fill {
+      height: 100%; border-radius: 3px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      width: 0%; transition: width 0.2s ease;
+    }
+
+    .expiry-bar {
+      font-family: 'DM Mono', monospace; font-size: 0.72rem;
+      color: var(--muted); text-align: right; margin-top: 12px;
+    }
+
+    /* ── Done ── */
+    #step-done {
+      display: none; width: 100%; max-width: 460px;
+      animation: fadeUp 0.5s forwards;
+    }
+
+    .done-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 40px;
+      text-align: center;
+      position: relative; overflow: hidden;
+    }
+
+    .done-card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent), var(--accent2), transparent);
+      opacity: 0.6;
+    }
+
+    .done-icon { font-size: 3.5rem; margin-bottom: 16px; animation: pop 0.4s ease; display: block; }
+    .done-title { font-size: 1.4rem; font-weight: 800; color: var(--accent); margin-bottom: 8px; }
+    .done-sub { font-size: 0.85rem; color: var(--muted); line-height: 1.7; margin-bottom: 24px; }
+
+    #download-btn {
+      padding: 14px 32px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border: none; border-radius: 12px;
+      color: #0a0a0f;
+      font-family: 'Syne', sans-serif;
+      font-size: 0.95rem; font-weight: 700;
+      cursor: pointer; text-decoration: none;
+      display: inline-block; transition: all 0.2s;
+    }
+
+    #download-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 30px rgba(0,245,160,0.3); }
+
+    /* ── Animations ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: 0.4; transform: scale(0.85); }
+    }
+    @keyframes pop {
+      0%   { transform: scale(0.5); opacity: 0; }
+      80%  { transform: scale(1.1); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    footer {
+      position: relative; z-index: 1;
+      text-align: center; padding: 24px;
+      font-family: 'DM Mono', monospace; font-size: 0.72rem;
+      color: var(--muted); border-top: 1px solid var(--border);
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="logo">
+      <div class="logo-icon">⚡</div>
+      QuickSend
+    </div>
+    <span class="nav-tag">RECEIVING</span>
+  </nav>
+
+  <main>
+    <!-- Step 1: Enter token (if no URL param) -->
+    <div id="step-enter">
+      <span class="enter-label">Receive a File</span>
+      <h1 class="enter-title">Enter your<br/>transfer code</h1>
+      <div class="enter-card">
+        <label class="token-input-label" for="token-input">Transfer Code</label>
+        <input type="text" id="token-input" placeholder="XXXXXXXXXXXX" maxlength="12" autocomplete="off" />
+        <p id="token-error"></p>
+        <button id="join-btn">Connect to Sender →</button>
+      </div>
+    </div>
+
+    <!-- Step 2: Waiting / receiving -->
+    <div id="step-waiting">
+      <div class="wait-card">
+        <div class="file-preview" id="file-preview">
+          <div class="file-preview-icon" id="preview-icon">📄</div>
+          <div class="file-preview-meta">
+            <div class="file-preview-name" id="preview-name"></div>
+            <div class="file-preview-size" id="preview-size"></div>
+          </div>
+        </div>
+
+        <div class="status-row">
+          <div class="pulse-dot" id="recv-dot"></div>
+          <span id="recv-status">Connected — waiting for sender to start transfer...</span>
+        </div>
+
+        <button id="receive-btn">Start Receiving ↓</button>
+
+        <div class="progress-wrap" id="recv-progress">
+          <div class="progress-top">
+            <span class="progress-label">Receiving</span>
+            <span class="progress-pct" id="recv-pct">0%</span>
+          </div>
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill" id="recv-fill"></div>
+          </div>
+        </div>
+
+        <div class="expiry-bar" id="recv-expiry"></div>
+      </div>
+    </div>
+
+    <!-- Step 3: Done -->
+    <div id="step-done">
+      <div class="done-card">
+        <span class="done-icon">📥</span>
+        <div class="done-title">File Received!</div>
+        <div class="done-sub" id="done-sub">Your file is ready to download.<br/>This session has been permanently destroyed.</div>
+        <a id="download-btn" href="#" download>Download File ↓</a>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    QuickSend · Zero storage · Session destroyed on receipt
+  </footer>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+
+    let currentToken = null;
+    let receivedChunks = [];
+    let fileInfo = null;
+    let expiryInterval = null;
+
+    // ── DOM ───────────────────────────────────────────────────────
+    const stepEnter   = document.getElementById('step-enter');
+    const stepWaiting = document.getElementById('step-waiting');
+    const stepDone    = document.getElementById('step-done');
+
+    const tokenInput  = document.getElementById('token-input');
+    const joinBtn     = document.getElementById('join-btn');
+    const tokenError  = document.getElementById('token-error');
+
+    const previewIcon = document.getElementById('preview-icon');
+    const previewName = document.getElementById('preview-name');
+    const previewSize = document.getElementById('preview-size');
+
+    const recvDot     = document.getElementById('recv-dot');
+    const recvStatus  = document.getElementById('recv-status');
+    const receiveBtn  = document.getElementById('receive-btn');
+    const recvProgress = document.getElementById('recv-progress');
+    const recvFill    = document.getElementById('recv-fill');
+    const recvPct     = document.getElementById('recv-pct');
+    const recvExpiry  = document.getElementById('recv-expiry');
+
+    // ── Helpers ───────────────────────────────────────────────────
+    function formatBytes(b) {
+      if (b < 1024) return b + ' B';
+      if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
+      return (b / 1048576).toFixed(1) + ' MB';
+    }
+
+    function fileEmoji(type) {
+      if (!type) return '📄';
+      if (type.startsWith('image/')) return '🖼️';
+      if (type.startsWith('video/')) return '🎬';
+      if (type.startsWith('audio/')) return '🎵';
+      if (type.includes('pdf')) return '📑';
+      if (type.includes('zip') || type.includes('compress')) return '🗜️';
+      if (type.startsWith('text/')) return '📝';
+      return '📄';
+    }
+
+    // ── Auto-join from URL param ──────────────────────────────────
+    function getTokenFromURL() {
+      return new URLSearchParams(window.location.search).get('token');
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const urlToken = getTokenFromURL();
+      if (urlToken) {
+        tokenInput.value = urlToken.toUpperCase();
+        joinSession(urlToken.toUpperCase());
+      }
+    });
+
+    // ── Join session ──────────────────────────────────────────────
+    tokenInput.addEventListener('input', () => {
+      tokenInput.value = tokenInput.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    });
+
+    joinBtn.addEventListener('click', () => {
+      const token = tokenInput.value.trim();
+      if (!token || token.length < 6) {
+        showError('Please enter a valid transfer code.');
+        return;
+      }
+      joinSession(token);
+    });
+
+    tokenInput.addEventListener('keydown', e => { if (e.key === 'Enter') joinBtn.click(); });
+
+    function joinSession(token) {
+      currentToken = token;
+      joinBtn.disabled = true;
+      joinBtn.textContent = 'Connecting...';
+      tokenError.style.display = 'none';
+      socket.emit('receiver:join', { token });
+    }
+
+    function showError(msg) {
+      tokenError.textContent = msg;
+      tokenError.style.display = 'block';
+      joinBtn.disabled = false;
+      joinBtn.textContent = 'Connect to Sender →';
+    }
+
+    // ── Socket events ─────────────────────────────────────────────
+    socket.on('receiver:invalid_token', ({ reason }) => {
+      showError(reason);
+      currentToken = null;
+    });
+
+    socket.on('receiver:joined', ({ fileName, fileSize, fileType, expiresAt }) => {
+      fileInfo = { fileName, fileSize, fileType };
+
+      previewIcon.textContent = fileEmoji(fileType);
+      previewName.textContent = fileName;
+      previewSize.textContent = formatBytes(fileSize);
+
+      stepEnter.style.display = 'none';
+      stepWaiting.style.display = 'flex';
+
+      startExpiryTimer(expiresAt);
+
+      // Immediately signal ready — no button needed
+      recvDot.className = 'pulse-dot active';
+      recvStatus.textContent = 'Connected — waiting for sender...';
+      socket.emit('receiver:ready', { token: currentToken });
+    });
+
+    socket.on('receiver:sender_ready', ({ fileName, fileSize, fileType }) => {
+      fileInfo = { fileName, fileSize, fileType };
+      previewIcon.textContent = fileEmoji(fileType);
+      previewName.textContent = fileName;
+      previewSize.textContent = formatBytes(fileSize);
+
+      recvDot.className = 'pulse-dot active';
+      recvStatus.textContent = 'Sender ready — receiving...';
+      recvProgress.style.display = 'block';
+      // Signal ready immediately
+      socket.emit('receiver:ready', { token: currentToken });
+    });
+
+    socket.on('receiver:chunk', ({ chunk, chunkIndex, totalChunks }) => {
+      receivedChunks[chunkIndex] = chunk;
+      const pct = Math.round(((chunkIndex + 1) / totalChunks) * 100);
+      recvFill.style.width = pct + '%';
+      recvPct.textContent = pct + '%';
+
+      if (chunkIndex === totalChunks - 1) {
+        finalizeDownload();
+      }
+    });
+
+    socket.on('receiver:cancelled', ({ reason } = {}) => {
+      clearInterval(expiryInterval);
+      recvDot.className = 'pulse-dot error';
+      recvStatus.textContent = reason || 'Transfer cancelled by sender.';
+      receiveBtn.style.display = 'none';
+    });
+
+    // ── Assemble & trigger download ───────────────────────────────
+    function finalizeDownload() {
+      clearInterval(expiryInterval);
+
+      const arrayBuffers = receivedChunks.map(chunk => {
+        if (chunk instanceof ArrayBuffer) return chunk;
+        // Handle various transfer encodings
+        if (chunk && chunk.data) return new Uint8Array(chunk.data).buffer;
+        return chunk;
+      });
+
+      const blob = new Blob(arrayBuffers, { type: fileInfo.fileType || 'application/octet-stream' });
+      const url = URL.createObjectURL(blob);
+
+      const downloadBtn = document.getElementById('download-btn');
+      downloadBtn.href = url;
+      downloadBtn.download = fileInfo.fileName;
+
+      document.getElementById('done-sub').innerHTML =
+        `<strong>${fileInfo.fileName}</strong> (${formatBytes(fileInfo.fileSize)}) is ready.<br/>This session has been permanently destroyed.`;
+
+      stepWaiting.style.display = 'none';
+      stepDone.style.display = 'block';
+    }
+
+    // ── Expiry ────────────────────────────────────────────────────
+    function startExpiryTimer(expiresAt) {
+      function tick() {
+        const remaining = Math.max(0, expiresAt - Date.now());
+        const mins = Math.floor(remaining / 60000);
+        const secs = Math.floor((remaining % 60000) / 1000);
+        recvExpiry.textContent = `Session expires in ${mins}:${secs.toString().padStart(2,'0')}`;
+        if (remaining === 0) clearInterval(expiryInterval);
+      }
+      tick();
+      expiryInterval = setInterval(tick, 1000);
+    }
+  </script>
+</body>
+</html>
